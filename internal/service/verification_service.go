@@ -19,6 +19,7 @@ type VerificationService struct {
 	verifs   *repository.VerificationRepo
 	docs     *repository.DocumentRepo
 	eventLog *repository.EventLogRepo
+	outbox   *repository.OutboxRepo
 	store    adapter.DocumentStore
 	ekyc     adapter.EKYCClient
 }
@@ -30,11 +31,12 @@ func NewVerificationService(
 	verifs *repository.VerificationRepo,
 	docs *repository.DocumentRepo,
 	eventLog *repository.EventLogRepo,
+	outbox *repository.OutboxRepo,
 	store adapter.DocumentStore,
 	ekyc adapter.EKYCClient,
 ) *VerificationService {
 	return &VerificationService{db: db, tx: tx, cases: cases, verifs: verifs,
-		docs: docs, eventLog: eventLog, store: store, ekyc: ekyc}
+		docs: docs, eventLog: eventLog, outbox: outbox, store: store, ekyc: ekyc}
 }
 
 type UploadIdentityInput struct {
@@ -156,4 +158,15 @@ func (s *VerificationService) UploadIdentity(ctx context.Context, in UploadIdent
 		CaseID:         in.CaseID,
 		Status:         v.Status,
 	}, nil
+}
+
+func (s *VerificationService) GetVerification(ctx context.Context, caseID, verificationID, subject string) (*domain.IdentityVerification, error) {
+	c, err := s.cases.GetByID(ctx, s.db, caseID)
+	if err != nil {
+		return nil, err
+	}
+	if c.CreatedBySubject != subject {
+		return nil, domain.ErrCaseNotFound
+	}
+	return s.verifs.GetForCase(ctx, s.db, caseID, verificationID)
 }

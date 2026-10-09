@@ -28,6 +28,7 @@ var (
 	ErrCaseStateInvalid       = NewError(http.StatusConflict, "ONB-4092", "Case state does not allow this operation")
 	ErrVerificationInProgress = NewError(http.StatusConflict, "ONB-4093", "A verification is already in progress for this case")
 	ErrMaxAttempts            = NewError(http.StatusUnprocessableEntity, "ONB-4222", "Maximum verification attempts reached, continue with assisted verification (video call)")
+	ErrVerificationNotFound   = NewError(http.StatusNotFound, "ONB-4042", "Verification not found")
 )
 
 func (e *AppError) WithDetail(d string) *AppError {

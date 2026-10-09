@@ -72,3 +72,20 @@ func (r *CaseRepo) SetSagaState(ctx context.Context, db DBTX, caseID string, s d
 		WHERE case_id = $1`, caseID, string(s))
 	return err
 }
+
+// AdvanceStage memindahkan stage hanya jika stage saat ini = from.
+// version & updated_at diurus trigger fn_case_touch.
+func (r *CaseRepo) AdvanceStage(ctx context.Context, db DBTX, caseID string, from, to domain.CaseStage, saga domain.SagaState) error {
+	tag, err := db.Exec(ctx, `
+		UPDATE onboarding_case
+		SET current_stage = $3::case_stage, saga_state = $4::saga_state
+		WHERE case_id = $1 AND current_stage = $2::case_stage`,
+		caseID, string(from), string(to), string(saga))
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrCaseStateInvalid
+	}
+	return nil
+}

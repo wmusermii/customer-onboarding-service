@@ -31,5 +31,6 @@ func NewRouter(pool *pgxpool.Pool, cases *CaseHandler, verifs *VerificationHandl
 
 	mux.Handle("POST /v1/onboarding/cases", v1(http.HandlerFunc(cases.Create)))
 	mux.Handle("POST /v1/onboarding/cases/{caseId}/identity-documents", v1(http.HandlerFunc(verifs.UploadIdentity)))
+	mux.Handle("GET /v1/onboarding/cases/{caseId}/identity-documents/{verificationId}", v1(http.HandlerFunc(verifs.GetVerification)))
 	return mux
 }

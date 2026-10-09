@@ -28,23 +28,20 @@ func main() {
 	txm := repository.NewTxManager(pool)
 	caseRepo := repository.NewCaseRepo()
 	eventLog := repository.NewEventLogRepo()
+	outbox := repository.NewOutboxRepo()
 
-	caseSvc := service.NewCaseService(
-		txm,
-		repository.NewCustomerRepo(),
-		caseRepo,
-		eventLog,
-		repository.NewOutboxRepo(),
-	)
+	caseSvc := service.NewCaseService(txm, repository.NewCustomerRepo(), caseRepo, eventLog, outbox)
 
+	ekyc := adapter.NewDummyEKYC(cfg.EKYCBaseURL, cfg.EKYCAPIKey, cfg.EKYCDummyResult)
 	verifSvc := service.NewVerificationService(
 		pool, txm, caseRepo,
 		repository.NewVerificationRepo(),
 		repository.NewDocumentRepo(),
-		eventLog,
+		eventLog, outbox,
 		adapter.NewDummyDocStore(),
-		adapter.NewDummyEKYC(cfg.EKYCBaseURL, cfg.EKYCAPIKey),
+		ekyc,
 	)
+	ekyc.SetHandler(verifSvc.HandleEKYCCompleted) // pengganti Kafka consumer
 
 	srv := &http.Server{
 		Addr: ":" + cfg.HTTPPort,
