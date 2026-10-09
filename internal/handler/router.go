@@ -9,7 +9,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func NewRouter(pool *pgxpool.Pool, cases *CaseHandler) http.Handler {
+// func NewRouter(pool *pgxpool.Pool, cases *CaseHandler) http.Handler {
+func NewRouter(pool *pgxpool.Pool, cases *CaseHandler, verifs *VerificationHandler) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -29,6 +30,6 @@ func NewRouter(pool *pgxpool.Pool, cases *CaseHandler) http.Handler {
 	)
 
 	mux.Handle("POST /v1/onboarding/cases", v1(http.HandlerFunc(cases.Create)))
-
+	mux.Handle("POST /v1/onboarding/cases/{caseId}/identity-documents", v1(http.HandlerFunc(verifs.UploadIdentity)))
 	return mux
 }

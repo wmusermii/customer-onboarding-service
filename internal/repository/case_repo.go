@@ -63,3 +63,12 @@ func (r *CaseRepo) GetByID(ctx context.Context, db DBTX, caseID string) (*domain
 		`SELECT `+caseColumns+` FROM onboarding_case WHERE case_id = $1`, caseID)
 	return scanCase(row)
 }
+
+// =========================================== This for transaction start =====================
+func (r *CaseRepo) SetSagaState(ctx context.Context, db DBTX, caseID string, s domain.SagaState) error {
+	_, err := db.Exec(ctx, `
+		UPDATE onboarding_case
+		SET saga_state = $2::saga_state, version = version + 1, updated_at = now()
+		WHERE case_id = $1`, caseID, string(s))
+	return err
+}

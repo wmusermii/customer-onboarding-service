@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"customer-onboarding-service/internal/adapter"
 	"customer-onboarding-service/internal/config"
 	"customer-onboarding-service/internal/handler"
 	"customer-onboarding-service/internal/platform/postgres"
@@ -24,17 +25,33 @@ func main() {
 	defer pool.Close()
 	log.Println("database connected")
 
+	txm := repository.NewTxManager(pool)
+	caseRepo := repository.NewCaseRepo()
+	eventLog := repository.NewEventLogRepo()
+
 	caseSvc := service.NewCaseService(
-		repository.NewTxManager(pool),
+		txm,
 		repository.NewCustomerRepo(),
-		repository.NewCaseRepo(),
-		repository.NewEventLogRepo(),
+		caseRepo,
+		eventLog,
 		repository.NewOutboxRepo(),
 	)
 
+	verifSvc := service.NewVerificationService(
+		pool, txm, caseRepo,
+		repository.NewVerificationRepo(),
+		repository.NewDocumentRepo(),
+		eventLog,
+		adapter.NewDummyDocStore(),
+		adapter.NewDummyEKYC(cfg.EKYCBaseURL, cfg.EKYCAPIKey),
+	)
+
 	srv := &http.Server{
-		Addr:              ":" + cfg.HTTPPort,
-		Handler:           handler.NewRouter(pool, handler.NewCaseHandler(caseSvc)),
+		Addr: ":" + cfg.HTTPPort,
+		Handler: handler.NewRouter(pool,
+			handler.NewCaseHandler(caseSvc),
+			handler.NewVerificationHandler(verifSvc),
+		),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
